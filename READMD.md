@@ -59,6 +59,29 @@
 
 
 
+## 2、Monorepo 的实现方案
+
+Monorepo 项目的基本结构：
+
+```js
+├── packages
+|   ├── pkg1
+|   |   ├── package.json
+|   ├── pkg2
+|   |   ├── package.json
+├── package.json
+```
+
+Monorepo 的项目管理，绝不是仅仅代码放到一起就可以的，还需要考虑项目间依赖分析、依赖安装、构建流程、测试流程、CI 及发布流程等诸多工程环节。
+
+目前，比较底层的方案是：lerna 和 yarn 的 workspaces 特性结合，用 yarn 处理依赖问题，lerna 处理发布问题，但是整个构建、测试、CI 等流程还是需要进行手动配置。
+
+当然，也有一些集成的方案，比如[`nx`](https://nx.dev/latest/react/getting-started/getting-started)、[`rushstack`](https://rushstack.io/)，提供从初始化、开发、构建、测试到部署的全流程能力，有一套比较完整的 Monorepo 基础设施，可以直接拿来进行项目的开发。但这些顶层方案内部各种流程和工具链都已经非常完善了，想要基于这些方案来定制、适配和维护的成本过高
+
+
+
+接下来，主要以 leran + yarn workspace 的方式学习 monorepo 的管理方式，这也是目前业界最佳实践。
+
 
 
 
