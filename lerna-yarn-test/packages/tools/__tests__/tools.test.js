@@ -2,6 +2,6 @@
 
 const tools = require('..');
 
-describe('@meno-demo/tools', () => {
+describe('@mono/tools', () => {
     it('needs tests');
 });

@@ -1,11 +1,11 @@
-# `@meno-demo/utils`
+# `@mono/tools`
 
 > TODO: description
 
 ## Usage
 
 ```
-const utils = require('@meno-demo/utils');
+const tools = require('@mono/tools');
 
 // TODO: DEMONSTRATE API
 ```

@@ -2,6 +2,6 @@
 
 const utils = require('..');
 
-describe('@meno-demo/utils', () => {
+describe('@mono/utils', () => {
     it('needs tests');
 });

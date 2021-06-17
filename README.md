@@ -1,4 +1,4 @@
-# Monorepo 实践
+# Monorepo 基础知识
 
 本文为学习 monorepo 的一些随笔记录。
 
@@ -178,15 +178,18 @@ lerna-test
 
 ### 3-4、创建 package
 
-创建名为 utils 、tools 的 package
+创建名为 utils 、tools 的 package，按照`monorepo`的惯例，package 的名称最好命名为 `@<主项目名称>/<子项目名称>`，这样当别人引用你的时候，你的这几个项目都可以在`node_modules`的同一个目录下面，目录名字就是`@<主项目名称>`，所以：
 
 ```js
-lerna create utils
+lerna create @meno-repo/utils
+lerna create @meno-repo/tools
 ```
 
 执行完命令之后，会发现 packages 目录下面多了两个包
 
  ![](/imgs/img3.png)
+
+这里发现，虽然 `@meno-repo/utils` 方式，但是在 packages 下面依然是 utils，但是看 package.json 会发现 `"name": "@meno-demo/utils"`
 
 
 
@@ -206,7 +209,7 @@ lerna add lodash --scope utils // 为 utils 安装 lodash
 
  ![](/imgs/img4.png)
 
-基于这种情况，可以使用 --hoist 来把每个 package 下的依赖包都提升到工程根目录，来降低安装以及管理的成本。
+基于这种情况，可以使用 --hoist **将子项目的依赖包都提取到最顶层**
 
 ```js
 lerna bootstrap --hoist
@@ -259,4 +262,135 @@ lerna publish
 
 
 ## 4、Lerna 与 yarn workspace
+
+lerna 与 yarn workspace 其实很多功能都是重复的，但是他们功能侧重点不同。
+
+- yarn 侧重于包管理、依赖管理、处理软链
+
+- lerna 侧重于多包管理和发布
+
+所以，可以将两者的优势结合使用。
+
+
+
+### 4-1、yarn workspace
+
+`lerna bootstrap --hoist` 虽然可以将子项目的依赖提升到顶层，但是他的方式比较粗暴：先在每个子项目运行 `npm install`，等所有依赖都安装好后，将他们移动到顶层的 `node_modules`。这会导致一个问题，如果多个子项目依赖同一个第三方库，但是需求的版本不同怎么办？比如多个子项目都依赖 `lodash`，但是他们的版本不完全一样：
+
+```js
+// utils
+"lodash": "4.17.21"
+
+// commom
+"lodash": "4.17.21"
+
+// tools
+"lodash": "3.17.21"
+```
+
+这种情况，如果使用 `lerna bootstrap --hoist` 来进行提升，`lerna` 会提升用的最多的版本，也就是 `4.17.21` 到顶层，然后把子项目的 `node_modules` 里面的 `lodash` 都删了。也就是说 `tools` 去访问 `lodash` 的话，也会拿到 `4.17.21` 的版本，这可能会导致`tools` 项目工作不正常
+
+这时候就需要 `yarn workspace`  了，他可以解决前面说的版本不一致的问题，`lerna bootstrap --hoist` 会把所有子项目用的最多的版本移动到顶层，而 `yarn workspace`  会检查每个子项目里面依赖及其版本，如果版本不一样则会留在子项目自己的 `node_modules`里面，只有完全一样的依赖才会提升到顶层。
+
+还是以上面这个 `lodash` 为例，使用 `yarn workspace` 的话，会把 `utils` 和 `commom` 的 `4.17.21` 版本移动到顶层，而 `tools` 项目下会保留自己 `3.17.21` 的 `lodash`，这样每个子项目都可以拿到自己需要的依赖了。
+
+
+
+那么该怎么使用在 lerna 中使用 yarn workspace 呢?
+
+基本理念就是：用 yarn 处理依赖问题，lerna 处理发布问题，所以前面两步是不变的
+
+1. lerna init 初始化项目
+2. lerna create package 创建子包
+
+后面为包添加依赖时，使用 yarn，并开启 yarn workspace：
+
+- 首先，在顶层 package.json 添加：
+
+  ```jsa
+  {
+    "name": "root",
+    "private": true,
+    "workspaces": [
+      "packages/*"
+    ],
+    "devDependencies": {
+      "lerna": "^4.0.0"
+    }
+  }
+  ```
+
+- 接着，在 lerna.json 里面指定 `npmClient` 为 `yarn`，并将 `useWorkspaces` 设置为 `true`
+
+  ```js
+  {
+    "packages": [
+      "packages/*"
+    ],
+    "npmClient": "yarn",
+    "useWorkspaces": true,
+    "version": "0.0.0"
+  }
+  ```
+
+然后执行 yarn install 就可以自动解决依赖和 link 等问题
+
+```js
+yarn install # 等价于 lerna bootstrap --npm-client yarn --use-workspaces
+```
+
+ ![](/imgs/img6.png)
+
+
+
+并且在根 node_modules 中还生成软链接，链向各个子包
+
+![](/imgs/img7.png)
+
+
+
+这就意味着，再 utils.js 中，可以：
+
+```js
+import tools from '@mono/tools'
+```
+
+将 tools 引入，这样就解决了各个子包相互引用问题
+
+
+
+### 4-2、yarn 为 menorepo 子包添加依赖
+
+一般分为三种场景：
+
+- 为根项目安装依赖：一般的公用的开发工具都是安装在 root 里，如 typescript，这种方式安装的依赖所有子包都可以访问
+
+  ```js
+  yarn add typescript -W -D
+  
+  -W：必须要，这样才能安装包
+  -D：也就是 --save-dev
+  ```
+
+  对应的的移除依赖包方式
+
+  ```js
+  yarn workspaces remove typescript
+  ```
+
+- 给某个 package 安装依赖：
+
+  ```js
+  yarn workspace @mono/utils add lodash
+  ```
+
+  对应的移除依赖包方法
+
+  ```js
+  yarn workspace @mono/utils remove lodash
+  ```
+
+
+
+
 
