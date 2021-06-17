@@ -139,7 +139,7 @@ lerna init
 初始化后的目录结构会是这样的：
 
 ```js
-monorepo-test
+lerna-test
 ├── packages
 ├── lerna.json
 ├── package.json
@@ -255,4 +255,8 @@ lerna clean
 ```js
 lerna publish
 ```
+
+
+
+## 4、Lerna 与 yarn workspace
 
