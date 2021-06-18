@@ -1,5 +1,5 @@
 {
-  "name": "@meno-demo/utils",
+  "name": "@mono/utils",
   "version": "0.0.0",
   "description": "> TODO: description",
   "author": "gweid <guanwei006@gmail.com>",
@@ -21,7 +21,7 @@
     "url": "git+https://github.com/gweid/monorepo-test.git"
   },
   "scripts": {
-    "test": "echo \"Error: run tests from root\" && exit 1"
+    "test": "echo \"Error: run tests from root\""
   },
   "bugs": {
     "url": "https://github.com/gweid/monorepo-test/issues"
