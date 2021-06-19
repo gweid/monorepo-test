@@ -1,4 +1,4 @@
-# Monorepo 基础知识
+# Monorepo 实践
 
 本文为学习 monorepo 的一些随笔记录。
 
@@ -124,7 +124,7 @@ Lerna 有两种管理模式：固定模式和独立模式。
 
 执行命令：`lerna init --independent`
 
-独立模式的特点是：允许使用者对每个package单独改变版本号。每次执行 `lerna publish` 的时候，针对所有有更新的 package，会逐个询问需要升级的版本号，基准版本为它自身的 package.json 里面的版本号。这种情况下，`lerna.json` 的版本号不会变化。
+独立模式的特点是：允许使用者对每个 package 单独改变版本号。每次执行 `lerna publish` 的时候，针对所有有更新的 package，会逐个询问需要升级的版本号，基准版本为它自身的 package.json 里面的版本号。这种情况下，`lerna.json` 的版本号不会变化。
 
 
 
@@ -383,7 +383,7 @@ lerna 与 yarn workspace 其实很多功能都是重复的，但是他们功能�
 
 - 首先，在顶层 package.json 添加：
 
-  ```jsa
+  ```js
   {
     "name": "root",
     "private": true,
@@ -465,6 +465,144 @@ import tools from '@mono/tools'
   ```js
   yarn workspace @mono/utils remove lodash
   ```
+
+
+
+## 5、搭建业务组件库
+
+下面进行实践，使用 vue2 + ts + lerna + yarn workspace + storybook 搭建业务组建库
+
+
+
+### 5-1、创建基本模板
+
+利用 vue-cli 创建一个基础模板，执行：
+
+```js
+vue create component-warehouse
+```
+
+选择第三项，自定义模板：
+
+ ![](/imgs/img10.png)
+
+勾选以下选项：
+
+![](/imgs/img11.png)
+
+选择 less
+
+![](/imgs/img12.png)
+
+完成基础模板创建
+
+
+
+### 5-2、使用 lerna + yarn workspace
+
+如果 vue create 创建是使用 npm 下载包，可以在生成基础模板之后，删除 package-lock.json 与 node_modules，再执行：
+
+```js
+yarn install
+```
+
+重新装包
+
+
+
+执行：
+
+```ls
+lerna init --independent
+```
+
+初始化 lerna 环境，因为组件库有很多不同的组件，那么肯定希望对每个 package 单独改变版本号。每次执行 `lerna publish` 的时候，针对所有有更新的 package，会逐个询问需要升级的版本号，基准版本为它自身的 package.json 里面的版本号，所以使用加上
+
+ `--independent`
+
+
+
+然后，在顶层 package.json 中：
+
+```js
+{
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "lerna": "^4.0.0"
+  }
+}
+```
+
+在 lerna.json 中：
+
+```js
+{
+  "packages": [
+    "packages/*"
+  ],
+  "npmClient": "yarn",
+  "useWorkspaces": true,
+  "version": "0.0.0"
+}
+```
+
+
+
+### 5-3、接入 storybook
+
+安装：
+
+```js
+yarn add @storybook/vue -D -W
+```
+
+
+
+安装 storybook 的辅助 addon
+
+```js
+yarn add @storybook/addon-actions @storybook/addon-essentials @storybook/addon-links -D -W
+```
+
+
+
+`.storybook/main.js`
+
+```js
+const path = require('path');
+
+module.exports = {
+  "stories": [
+    "../doc/**/*.stories.mdx",
+    "../doc/**/*.stories.@(js|jsx|ts|tsx)",
+    "../packages/**/*.stories.@(js|jsx|ts|tsx|mdx)"
+  ],
+  "addons": [
+    "@storybook/addon-links",
+    "@storybook/addon-essentials"
+  ],
+  webpackFinal: async (config, { configType }) => {
+    // Make whatever fine-grained changes you need
+    config.module.rules.push({
+      test: /\.less$/,
+      use: ['style-loader', 'css-loader', 'less-loader'],
+      include: path.resolve(__dirname, '../'),
+    });
+    // Return the altered config
+    return config;
+  }
+}
+```
+
+因为在通过 vue-cli 创建项目的时候，就是使用的 less，那么 less 相关的 loader 已经安装，所以这里就可以直接使用
+
+
+
+
 
 
 
